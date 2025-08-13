@@ -25,6 +25,7 @@ sys.path.insert(0, str(project_root))
 from src.training.config import ModelConfig, DataConfig, TrainerConfig, MLflowConfig
 from src.training.trainer_unsloth import run_unsloth_testing
 
+
 def force_environment_variables():
     """환경 변수를 강제로 설정합니다."""
     
@@ -52,6 +53,7 @@ def force_environment_variables():
     for key, value in os.environ.items():
         if "CACHE" in key or "HF_" in key or "UNSLOTH" in key:
             print(f"   {key}: {value}")
+
 
 def create_test_configs(method: str, model_path: Path = None, output_dir: Path = None) -> tuple[ModelConfig, DataConfig, TrainerConfig, MLflowConfig]:
     """테스트용 설정값을 생성합니다."""
@@ -89,7 +91,7 @@ def create_test_configs(method: str, model_path: Path = None, output_dir: Path =
     # MLflow 설정
     mlflow_config = MLflowConfig(
         experiment_name="cde-eeg-llm-testing",
-        tracking_uri="sqlite:///mlruns/mlruns.db",
+        tracking_uri="mlruns",
         artifact_location="mlruns",
         log_artifacts=True,
         log_models=True,
@@ -131,6 +133,7 @@ def create_test_configs(method: str, model_path: Path = None, output_dir: Path =
     
     return model_config, data_config, trainer_config, mlflow_config
 
+
 def setup_mlflow_experiment(mlflow_config: MLflowConfig, method: str, model_path: Path = None):
     """MLflow 실험을 설정하고 시작합니다."""
     
@@ -156,6 +159,7 @@ def setup_mlflow_experiment(mlflow_config: MLflowConfig, method: str, model_path
         print(f"🔗 MLflow UI: mlflow ui --backend-store-uri {mlflow_config.tracking_uri}")
         
         return run
+
 
 def main():
     """메인 함수."""
@@ -194,7 +198,7 @@ def main():
         if not model_path.exists():
             print(f"❌ 모델 경로를 찾을 수 없습니다: {model_path}")
             sys.exit(1)
-        print(f"�� 모델 경로: {model_path}")
+        print(f"📁 모델 경로: {model_path}")
     else:
         print("⚠️ --model_path가 지정되지 않았습니다. 기본 경로를 사용합니다.")
     
@@ -208,12 +212,12 @@ def main():
         args.method, model_path, output_dir
     )
     
-    print(f"�� CDE-EEG-LLM 테스트 시작")
+    print(f"🚀 CDE-EEG-LLM 테스트 시작")
     print(f"📋 방법: {args.method.upper()}")
     print(f"🧠 모델: {model_config.model_id}")
     print(f"🧪 테스트 데이터: {data_config.test_csv_path}")
     print(f"💾 출력: {trainer_config.output_dir}")
-    print(f"�� MLflow 실험: {mlflow_config.experiment_name}")
+    print(f"📊 MLflow 실험: {mlflow_config.experiment_name}")
     print("-" * 50)
     
     # 출력 디렉토리 생성

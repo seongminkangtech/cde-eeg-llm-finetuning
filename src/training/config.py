@@ -42,7 +42,7 @@ class DataConfig:
     test_csv_path: Path
     text_field: str = "EMR"
     raw_label_field: str = "True"
-    max_seq_length: int = 512
+    max_seq_length: int = 1024
 
 
 @dataclass
@@ -63,22 +63,21 @@ class TrainerConfig:
     """트레이너/학습 관련 설정 값."""
 
     output_dir: Path
-    num_train_epochs: int = 10
-    per_device_train_batch_size: int = 4
+    num_train_epochs: int = 5
+    per_device_train_batch_size: int = 2
     per_device_eval_batch_size: int = 2
-    gradient_accumulation_steps: int = 1
-    learning_rate: float = 2e-4
-    weight_decay: float = 1e-3
+    gradient_accumulation_steps: int = 8
+    learning_rate: float = 1e-4
+    weight_decay: float = 1e-4
     fp16: bool = True
     bf16: bool = False
-    optim: str = "paged_adamw_32bit"
-    save_steps: int = 15
-    logging_steps: int = 15
-    max_grad_norm: float = 0.3
+    optim: str = "paged_adamw_8bit"
+    save_steps: int = 25
+    logging_steps: int = 10
+    max_grad_norm: float = 1.0
     max_steps: int = -1
-    warmup_ratio: float = 0.03
+    warmup_ratio: float = 0.1
     group_by_length: bool = True
-    lr_scheduler_type: str = "constant"
+    lr_scheduler_type: str = "cosine"
     report_to: str = "mlflow"
     gradient_checkpointing: bool = True
-

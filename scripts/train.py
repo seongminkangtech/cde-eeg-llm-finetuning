@@ -91,7 +91,7 @@ def create_default_configs(method:str) -> tuple[ModelConfig, DataConfig, Trainer
     # DB 파일을 mlruns 디렉토리 내부에 위치하도록 경로 지정
     mlflow_config = MLflowConfig(
         experiment_name="cde-eeg-llm-finetuning",
-        tracking_uri="sqlite:///mlruns/mlruns.db",  # mlruns 디렉토리 내부에 DB 생성
+        tracking_uri="mlruns",  # 파일 시스템 경로로 MLflow 트래킹
         artifact_location="mlruns",
         log_artifacts=True,
         log_models=True,
@@ -102,22 +102,22 @@ def create_default_configs(method:str) -> tuple[ModelConfig, DataConfig, Trainer
     # 학습 설정
     trainer_config = TrainerConfig(
         output_dir=Path(f"output/{model_config.model_id}_{method}_{datetime.now().strftime('%Y%m%d_%H%M%S')}"),
-        num_train_epochs=3,
-        per_device_train_batch_size=1,
-        per_device_eval_batch_size=1,
-        gradient_accumulation_steps=4,
-        learning_rate=2e-4,
-        weight_decay=1e-3,
+        num_train_epochs=5,
+        per_device_train_batch_size=2,
+        per_device_eval_batch_size=2,
+        gradient_accumulation_steps=8,
+        learning_rate=1e-4,
+        weight_decay=1e-4,
         fp16=False,
         bf16=True,
-        optim="adamw_8bit",
-        save_steps=50,
+        optim="paged_adamw_8bit",
+        save_steps=25,
         logging_steps=10,
-        max_grad_norm=0.3,
+        max_grad_norm=1.0,
         max_steps=-1,
-        warmup_ratio=0.03,
+        warmup_ratio=0.1,
         group_by_length=True,
-        lr_scheduler_type="constant",
+        lr_scheduler_type="cosine",
         report_to="mlflow",
         gradient_checkpointing=True,
     )
