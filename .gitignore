@@ -1,0 +1,314 @@
+# 🏥 의료 AI 프로젝트 .gitignore
+
+## 🐍 Python 관련
+
+# Python 캐시 및 임시 파일
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Python 빌드 파일
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# 가상환경
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+.venv/
+.env/
+
+# Python 패키지 관리
+pip-log.txt
+pip-delete-this-directory.txt
+Pipfile.lock
+poetry.lock
+.conda/
+conda-meta/
+
+## 📊 Jupyter Notebook
+
+# Jupyter Notebook checkpoints (임시 파일만 제외)
+.ipynb_checkpoints/
+
+# Jupyter Lab 설정
+.jupyter/
+
+## 🏥 의료 데이터 보안
+
+# 의료 데이터 (보안상 중요)
+data/
+datasets/
+medical_data/
+patient_data/
+dicom_data/
+*.dcm
+*.dicom
+*.nii
+*.nii.gz
+*.mha
+*.mhd
+
+# 데이터 전처리 결과
+preprocessed_data/
+augmented_data/
+processed_data/
+
+# 환자 정보 (HIPAA 준수)
+patient_info/
+patient_data/
+patient_mapping.csv
+patient_ids.csv
+
+## 🤖 AI 모델 파일
+
+# 모델 파일 (용량이 큼) - 모델 아키텍처는 공유되므로 제거
+# models/ - 모델 아키텍처 공유를 위해 제거
+checkpoints/
+*.h5
+*.hdf5
+*.pth
+*.pt
+*.pkl
+*.pickle
+*.joblib
+*.onnx
+*.pb
+*.tflite
+*.savedmodel/
+
+# 모델 아티팩트
+model_artifacts/
+mlruns/
+mlflow/
+wandb/
+tensorboard_logs/
+logs/
+runs/
+
+# 학습 결과 (대용량 파일)
+results/
+output/
+outputs/
+predictions/
+submissions/
+
+## 🔧 개발 환경
+
+# IDE 설정
+.vscode/
+*.code-workspace
+.idea/
+*.iml
+*.ipr
+*.iws
+*.sublime-project
+*.sublime-workspace
+*.swp
+*.swo
+*~
+
+# Emacs
+\#*\#
+/.emacs.desktop
+/.emacs.desktop.lock
+*.elc
+auto-save-list
+tramp
+.\#*
+
+# OS 관련
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+._*
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+.AppleDB
+.AppleDesktop
+Network Trash Folder
+Temporary Items
+.apdisk
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+*.tmp
+*.temp
+Desktop.ini
+$RECYCLE.BIN/
+*.cab
+*.msi
+*.msix
+*.msm
+*.msp
+*.lnk
+.fuse_hidden*
+.directory
+.Trash-*
+.nfs*
+
+## 🚀 MLOps 도구
+
+# MLflow - 실험 결과는 공유하지 않음
+mlruns/
+mlflow/
+mlflow.db
+mlflow.db-journal
+
+# Weights & Biases
+wandb/
+wandb.log
+
+# TensorBoard
+tensorboard_logs/
+*.tfevents.*
+
+# Docker
+.dockerignore
+docker-compose.override.yml
+
+## 📁 현재 프로젝트 특화
+
+# 각 프로젝트별 데이터/모델
+*/data/
+# */models/ - 모델 아키텍처 공유를 위해 제거
+*/checkpoints/
+*/results/
+*/outputs/
+*/logs/
+
+# 의료 데이터 처리
+*/preprocessed/
+*/augmented/
+*/annotated/
+*/labeled/
+
+# 의료 모델 결과
+*/predictions/
+*/evaluations/
+*/metrics/
+*/confusion_matrices/
+*/roc_curves/
+
+## 🔐 보안 관련
+
+# 환경 변수
+.env
+.env.local
+.env.development
+.env.test
+.env.production
+.env.staging
+
+# API 키
+api_keys.txt
+secrets.json
+credentials.json
+
+# 환자 식별 정보
+patient_ids.txt
+patient_mapping.csv
+deidentified_data/
+
+# 의료 인증 정보
+medical_credentials/
+hipaa_logs/
+audit_trails/
+
+## 📊 데이터베이스
+
+# SQLite
+*.db
+*.sqlite
+*.sqlite3
+
+# PostgreSQL
+*.sql
+*.dump
+
+# MongoDB
+*.bson
+
+## 🧪 테스트 관련
+
+# 테스트 결과
+test_results/
+coverage/
+.coverage
+htmlcov/
+.pytest_cache/
+.tox/
+.nox/
+
+## 📦 배포 관련
+
+# 배포 설정
+deploy/
+dist/
+build/
+*.tar.gz
+*.zip
+
+# 서버 설정
+server_config/
+production_config/
+
+## 📝 의료 AI 프로젝트 특화 설정
+
+# 의료 AI 프로젝트에서는 중요한 코드 파일들을 포함
+# 필요시 주석 해제하여 모든 파일 포함
+
+# Python 스크립트 포함 (필요시 주석 해제)
+# *.py
+
+# Jupyter 노트북 포함 (필요시 주석 해제)
+# *.ipynb
+
+# 샘플 데이터 포함 (필요시 주석 해제)
+# !sample_data/
+# !demo_data/
+# !test_data/
+# !sample_images/
+# !demo_videos/
+
+# 중요한 메타데이터 포함 (필요시 주석 해제)
+# !metadata.csv
+# !sample_data.csv
+# !demo_data.xlsx
+# !config.json 
+
+# 이전 프로젝트 디렉토리 무시 (Windows 경로 및 하위 전체)
+previous_project/
+previous_project/**
+
+# 캐시파일 관련
+cache/
+torch_compile_debug
+unsloth_compiled_cache
