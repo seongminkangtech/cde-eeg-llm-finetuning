@@ -1,0 +1,33 @@
+services:
+  cde-eeg-llm-finetuning:
+    # 이미지 빌드 옵션 추가 (Dockerfile이 현재 디렉토리에 있다고 가정)
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    image: cde-eeg-llm-finetuning:latest
+    container_name: cde-eeg-llm-finetuning
+
+    # GPU 설정 (docker compose v3 이상에서는 deploy가 Swarm 모드에서만 동작하므로, 일반 compose 사용시 runtime 사용 권장)
+    # 아래 runtime 옵션은 compose v2/v3에서 GPU 할당에 더 적합
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    # 또는 아래와 같이 runtime 사용 (Swarm 모드가 아니라면)
+    # runtime: nvidia
+
+    # 볼륨 마운트 (Linux/Mac 환경에서는 경로를 절대경로로, Windows는 WSL2 환경 권장)
+    # 예시: - /home/username/workspace/CDE-LLM:/workspace/CDE-LLM
+    volumes:
+      - D:\workspace\AMC\cde-eeg-llm-finetuning:/workspace/cde-eeg-llm-finetuning
+
+    # 5000번 포트 바인딩 추가 (호스트:컨테이너)
+    ports:
+      - "5000:5000"
+
+    working_dir: /workspace/cde-eeg-llm-finetuning
+    stdin_open: true
+    tty: true

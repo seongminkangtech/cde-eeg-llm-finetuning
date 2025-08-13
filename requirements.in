@@ -1,0 +1,37 @@
+# CDE-EEG-LLM-Finetuning 프로젝트 핵심 의존성
+# Python 3.11+ 지원
+
+# LLM 파인튜닝 핵심
+unsloth  # Unsloth 라이브러리 (4bit 양자화, 메모리 최적화)
+transformers
+torch
+torchvision
+torchaudio
+
+# 실험 관리
+mlflow
+
+# 데이터 처리
+pandas
+numpy
+scipy
+scikit-learn
+
+# 의료 데이터 지원
+pydicom
+nibabel
+
+# 웹 서버 (선택사항)
+fastapi
+uvicorn
+
+# 유틸리티
+python-dotenv
+pyyaml
+tqdm
+matplotlib
+seaborn
+
+# 개발 도구
+jupyter
+ipython
