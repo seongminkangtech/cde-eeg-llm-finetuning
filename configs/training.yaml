@@ -1,0 +1,49 @@
+# CDE-EEG-LLM 파인튜닝 설정 파일
+# 이 파일을 수정하여 학습 파라미터를 커스터마이징할 수 있습니다.
+
+model:
+  # 모델 관련 설정
+  num_labels: 4
+  use_qlora: true
+  load_in_4bit: true
+  use_flash_attn_if_available: true
+
+data:
+  # 데이터 관련 설정
+  train_csv_path: "data/250723_train.csv"
+  eval_csv_path: "data/250723_eval.csv"
+  test_csv_path: "data/250723_test.csv"
+  text_field: "EMR"
+  raw_label_field: "True"
+  max_seq_length: 1024
+
+trainer:
+  # 학습 관련 설정
+  num_train_epochs: 5
+  per_device_train_batch_size: 2
+  per_device_eval_batch_size: 2
+  gradient_accumulation_steps: 8
+  learning_rate: 1.0e-4
+  weight_decay: 1.0e-4
+  fp16: false
+  bf16: true
+  optim: "paged_adamw_8bit"
+  save_steps: 50
+  logging_steps: 10
+  max_grad_norm: 1.0
+  max_steps: -1
+  warmup_ratio: 0.1
+  group_by_length: true
+  lr_scheduler_type: "cosine"
+  report_to: "mlflow"
+  gradient_checkpointing: true
+
+mlflow:
+  # MLflow 관련 설정
+  experiment_name: "cde-eeg-llm-finetuning"
+  tracking_uri: "mlruns"
+  artifact_location: "mlruns"
+  log_artifacts: true
+  log_models: true
+  log_hyperparams: true
+  log_metrics: true

@@ -386,10 +386,6 @@ class MLflowCallback(TrainerCallback):
                         self.loss_history.append(value)
                         self._check_early_stopping(value)
                         
-                        # 최고 성능 모델 저장 체크
-                        if self.model_save_dir and self.model is not None:
-                            self._check_and_save_best_model(value, state.global_step)
-                        
                         # Early Stopping 조건 만족 시 학습 중단 신호
                         if self.should_stop:
                             print(f"🛑 Early Stopping 조건 만족! Step {self.step}에서 학습을 중단합니다.")
@@ -408,8 +404,9 @@ class MLflowCallback(TrainerCallback):
         
         # 개선 여부 확인 (최소 변화량 고려)
         if current_loss < self.best_loss - self.min_delta:
-            self.best_loss = current_loss
             self.patience_counter = 0
+            self._check_and_save_best_model(current_loss, self.step)
+            self.best_loss = current_loss
             print(f"✅ 새로운 최고 성능! Loss: {self.best_loss:.4f} (Step: {self.step})")
         else:
             self.patience_counter += 1
@@ -422,43 +419,42 @@ class MLflowCallback(TrainerCallback):
     
     def _check_and_save_best_model(self, current_loss, global_step):
         """최고 성능 모델을 저장합니다."""
-        if current_loss < self.best_loss - self.min_delta:
-            try:
-                # 이전 최고 모델 삭제
-                if self.best_model_path and self.best_model_path.exists():
-                    import shutil
-                    shutil.rmtree(self.best_model_path)
-                    print(f"🗑️ 이전 최고 모델 삭제: {self.best_model_path}")
-                
-                # 새로운 최고 모델 저장
-                self.best_model_path = Path(self.model_save_dir) / f"best_model_step_{global_step}_loss_{current_loss:.4f}"
-                self.best_model_path.mkdir(parents=True, exist_ok=True)
-                
-                # 모델과 토크나이저 저장
-                self.model.save_pretrained(str(self.best_model_path))
-                self.tokenizer.save_pretrained(str(self.best_model_path))
-                
-                # 메타데이터 저장
-                metadata = {
-                    "step": global_step,
-                    "loss": current_loss,
-                    "timestamp": time.time(),
-                    "model_type": "unsloth_best"
-                }
-                
-                import json
-                with open(self.best_model_path / "metadata.json", "w") as f:
-                    json.dump(metadata, f, indent=2)
-                
-                self.best_step = global_step
-                print(f"💾 새로운 최고 성능 모델 저장: {self.best_model_path}")
-                print(f"   Step: {global_step}, Loss: {current_loss:.4f}")
-                
-                # MLflow에 아티팩트로 로깅
-                mlflow.log_artifact(str(self.best_model_path), f"best_model_step_{global_step}")
-                
-            except Exception as e:
-                print(f"❌ 최고 성능 모델 저장 중 오류: {e}")
+        try:
+            # 이전 최고 모델 삭제
+            if self.best_model_path and self.best_model_path.exists():
+                import shutil
+                shutil.rmtree(self.best_model_path)
+                print(f"🗑️ 이전 최고 모델 삭제: {self.best_model_path}")
+            
+            # 새로운 최고 모델 저장
+            self.best_model_path = Path(self.model_save_dir) / f"best_model_step_{global_step}_loss_{current_loss:.4f}"
+            self.best_model_path.mkdir(parents=True, exist_ok=True)
+            
+            # 모델과 토크나이저 저장
+            self.model.save_pretrained(str(self.best_model_path))
+            self.tokenizer.save_pretrained(str(self.best_model_path))
+            
+            # 메타데이터 저장
+            metadata = {
+                "step": global_step,
+                "loss": current_loss,
+                "timestamp": time.time(),
+                "model_type": "unsloth_best"
+            }
+            
+            import json
+            with open(self.best_model_path / "metadata.json", "w") as f:
+                json.dump(metadata, f, indent=2)
+            
+            self.best_step = global_step
+            print(f"💾 새로운 최고 성능 모델 저장: {self.best_model_path}")
+            print(f"   Step: {global_step}, Loss: {current_loss:.4f}")
+            
+            # MLflow에 아티팩트로 로깅
+            mlflow.log_artifact(str(self.best_model_path), f"best_model_step_{global_step}")
+            
+        except Exception as e:
+            print(f"❌ 최고 성능 모델 저장 중 오류: {e}")
     
     def on_train_end(self, args, state, control, **kwargs):
         """학습 종료 시 호출됩니다."""
@@ -487,7 +483,6 @@ def run_unsloth_training(
     model_conf: ModelConfig, 
     data_conf: DataConfig, 
     trainer_conf: TrainerConfig,
-    mlflow_run=None
 ) -> None:
     """Unsloth 기반 분류 파인튜닝을 수행하고 학습 완료 후 테스트 데이터로 평가합니다."""
 
@@ -527,29 +522,57 @@ def run_unsloth_training(
     print(f"검증 데이터셋 샘플 수: {len(eval_dataset)}")
     print(f"첫 번째 샘플 키: {list(train_dataset[0].keys())}")
     
-    # 4. 학습 인자 설정 (Unsloth 호환 - Early Stopping 옵션 제거)
-    training_args = TrainingArguments(
-        output_dir=str(trainer_conf.output_dir),
-        num_train_epochs=trainer_conf.num_train_epochs,
-        per_device_train_batch_size=trainer_conf.per_device_train_batch_size,
-        per_device_eval_batch_size=trainer_conf.per_device_eval_batch_size,
-        gradient_accumulation_steps=trainer_conf.gradient_accumulation_steps,
-        learning_rate=trainer_conf.learning_rate,
-        weight_decay=trainer_conf.weight_decay,
-        fp16=trainer_conf.fp16,
-        bf16=trainer_conf.bf16,
-        optim="adamw_8bit",  # Unsloth 권장
-        save_steps=trainer_conf.save_steps,
-        logging_steps=trainer_conf.logging_steps,
-        max_grad_norm=trainer_conf.max_grad_norm,
-        max_steps=trainer_conf.max_steps,
-        warmup_ratio=trainer_conf.warmup_ratio,
-        group_by_length=trainer_conf.group_by_length,
-        lr_scheduler_type=trainer_conf.lr_scheduler_type,
-        report_to="none",  # MLflow와 충돌 방지
-        gradient_checkpointing=True,  # Unsloth와 호환
-        seed=3407,
-    )
+    # 4. 학습 인자 설정 - max_steps vs epochs 로직 개선
+    if trainer_conf.max_steps > 0:
+        # 🎯 max_steps가 설정된 경우 epochs 무시
+        training_args = TrainingArguments(
+            output_dir=str(trainer_conf.output_dir),
+            max_steps=trainer_conf.max_steps,  # 🎯 명시적으로 설정
+            num_train_epochs=None,  # 🎯 max_steps 사용 시 epochs 무시
+            per_device_train_batch_size=trainer_conf.per_device_train_batch_size,
+            per_device_eval_batch_size=trainer_conf.per_device_eval_batch_size,
+            gradient_accumulation_steps=trainer_conf.gradient_accumulation_steps,
+            learning_rate=trainer_conf.learning_rate,
+            weight_decay=trainer_conf.weight_decay,
+            fp16=trainer_conf.fp16,
+            bf16=trainer_conf.bf16,
+            optim="adamw_8bit",  # Unsloth 권장
+            save_steps=trainer_conf.save_steps,
+            logging_steps=trainer_conf.logging_steps,
+            max_grad_norm=trainer_conf.max_grad_norm,
+            warmup_ratio=trainer_conf.warmup_ratio,
+            group_by_length=trainer_conf.group_by_length,
+            lr_scheduler_type=trainer_conf.lr_scheduler_type,
+            report_to='mlflow',
+            gradient_checkpointing=True,  # Unsloth와 호환
+            seed=3407,
+        )
+        print(f"🎯 최대 학습 스텝: {trainer_conf.max_steps}")
+    else:
+        # 🎯 epochs 기반 학습
+        training_args = TrainingArguments(
+            output_dir=str(trainer_conf.output_dir),
+            num_train_epochs=trainer_conf.num_train_epochs,
+            max_steps=-1,  # 🎯 epochs 기반 학습
+            per_device_train_batch_size=trainer_conf.per_device_train_batch_size,
+            per_device_eval_batch_size=trainer_conf.per_device_eval_batch_size,
+            gradient_accumulation_steps=trainer_conf.gradient_accumulation_steps,
+            learning_rate=trainer_conf.learning_rate,
+            weight_decay=trainer_conf.weight_decay,
+            fp16=trainer_conf.fp16,
+            bf16=trainer_conf.bf16,
+            optim="adamw_8bit",  # Unsloth 권장
+            save_steps=trainer_conf.save_steps,
+            logging_steps=trainer_conf.logging_steps,
+            max_grad_norm=trainer_conf.max_grad_norm,
+            warmup_ratio=trainer_conf.warmup_ratio,
+            group_by_length=trainer_conf.group_by_length,
+            lr_scheduler_type=trainer_conf.lr_scheduler_type,
+            report_to='mlflow',
+            gradient_checkpointing=True,  # Unsloth와 호환
+            seed=3407,
+        )
+        print(f"🎯 학습 에포크: {trainer_conf.num_train_epochs}")
     
     # 5. SFTTrainer 구성 및 학습
     trainer = SFTTrainer(
@@ -585,9 +608,11 @@ def run_unsloth_training(
         else:
             print("✅ 학습이 완료되었습니다!")
         
+        # 🎯 학습 완료 후 메모리 정리
+        cleanup_memory()
+        
         # 학습 결과 MLflow에 로깅
         if train_result:
-            mlflow.log_metric("train_loss", train_result.training_loss)
             mlflow.log_metric("train_runtime", train_result.metrics.get("train_runtime", 0))
             mlflow.log_metric("train_samples_per_second", train_result.metrics.get("train_samples_per_second", 0))
             mlflow.log_metric("training_completed", 1 if not early_stop_requested and not mlflow_callback.should_stop else 0)
@@ -597,14 +622,33 @@ def run_unsloth_training(
         print("\n🛑 키보드 인터럽트로 학습이 중단되었습니다.")
         early_stop_requested = True
         mlflow.log_metric("training_interrupted", 1)
+        
+        # 🎯 중단 시에도 메모리 정리
+        cleanup_memory()
     
-    # 6. 모델 저장
-    output_path = Path(trainer_conf.output_dir) / "unsloth_model"
+    finally:
+        # 🎯 최종 메모리 정리
+        cleanup_memory()
+        print("🧹 학습 완료 후 메모리 정리가 완료되었습니다.")
+    
+    # 6. 모델 저장 - 경로 통일
+    model_save_name = "final_model"  # 🎯 경로명 통일
+    output_path = Path(trainer_conf.output_dir) / model_save_name
+    
+    # 기존 모델 삭제
+    if output_path.exists():
+        import shutil
+        shutil.rmtree(output_path)
+        print(f"🗑️ 기존 모델 삭제: {output_path}")
+    
+    # 모델과 토크나이저 저장
     model.save_pretrained(str(output_path), push_to_hub=False)
     tokenizer.save_pretrained(str(output_path), push_to_hub=False)
     
     # MLflow에 모델 아티팩트 로깅
     mlflow.log_artifact(str(output_path), "model")
+    
+    print(f"💾 모델이 저장되었습니다: {output_path}")
     
     # 최고 성능 모델 정보 표시
     best_model_path = mlflow_callback.get_best_model_path()
@@ -652,8 +696,8 @@ def run_unsloth_testing(
             best_model_path = final_best_path
             print(f"🏆 최고 성능 모델을 찾았습니다: {best_model_path}")
         else:
-            # 기존 unsloth_model 디렉토리 사용
-            best_model_path = model_path / "unsloth_model"
+            # 기존 final_model 디렉토리 사용 (경로 통일됨)
+            best_model_path = model_path / "final_model"
             print(f"📥 기본 모델을 사용합니다: {best_model_path}")
     
     if not best_model_path or not best_model_path.exists():
@@ -704,9 +748,13 @@ def run_unsloth_testing(
                 test_df, model, tokenizer, data_conf.text_field
             )
             
-            # 결과 저장
             model_name = Path(trainer_conf.output_dir).name
-            test_accuracy = save_test_results(test_df_with_predictions, trainer_conf.output_dir, model_name, data_conf.raw_label_field)
+            test_accuracy = save_test_results(
+                test_df_with_predictions, 
+                trainer_conf.output_dir, 
+                model_name, 
+                data_conf.raw_label_field, 
+            )
             
             # 최종 성능 요약
             print(f"\n🎯 최종 테스트 정확도: {test_accuracy:.4f}")
@@ -735,7 +783,6 @@ def run_unsloth_train_testing(
     model_conf: ModelConfig, 
     data_conf: DataConfig, 
     trainer_conf: TrainerConfig,
-    mlflow_run=None
 ) -> float:
     """
     Unsloth 기반 파인튜닝을 수행하고 학습 완료 후 테스트 데이터로 평가하는 통합 함수
@@ -760,7 +807,6 @@ def run_unsloth_train_testing(
             model_conf=model_conf,
             data_conf=data_conf, 
             trainer_conf=trainer_conf,
-            mlflow_run=mlflow_run
         )
         
         print("✅ 파인튜닝이 완료되었습니다.")
@@ -800,11 +846,9 @@ def run_unsloth_train_testing(
                 print(f"   Step: {metadata.get('step', 'N/A')}")
                 print(f"   Loss: {metadata.get('loss', 'N/A')}")
         
-        # MLflow에 최종 메트릭 로깅
-        if mlflow_run:
-            mlflow.log_metric("final_test_accuracy", test_accuracy)
-            mlflow.log_metric("training_and_testing_completed", 1)
-            mlflow.set_tag("pipeline_status", "completed")
+        mlflow.log_metric("final_test_accuracy", test_accuracy)
+        mlflow.log_metric("training_and_testing_completed", 1)
+        mlflow.set_tag("pipeline_status", "completed")
         
         return test_accuracy
         
@@ -813,11 +857,9 @@ def run_unsloth_train_testing(
         import traceback
         traceback.print_exc()
         
-        # MLflow에 오류 로깅
-        if mlflow_run:
-            mlflow.log_metric("training_and_testing_failed", 1)
-            mlflow.set_tag("pipeline_status", "failed")
-            mlflow.set_tag("error_message", str(e))
+        mlflow.log_metric("training_and_testing_failed", 1)
+        mlflow.set_tag("pipeline_status", "failed")
+        mlflow.set_tag("error_message", str(e))
         
         # 메모리 정리
         cleanup_memory()
